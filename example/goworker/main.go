@@ -48,21 +48,24 @@ func (a *exampleAddTask) RunTask() (interface{}, error) {
 func main() {
 
 	// initialize celery client
-	cli, _ := gocelery.NewCeleryClient(
+	client, _ := gocelery.NewCeleryClient(
 		gocelery.NewRedisCeleryBroker("redis://"),
 		gocelery.NewRedisCeleryBackend("redis://"),
 		5, // number of workers
 	)
 
 	// register task
-	cli.Register("worker.add_reflect", &exampleAddTask{})
+	client.Register("worker.add", func(a, b int) int {
+		return a + b
+	})
+	client.Register("worker.add_reflect", &exampleAddTask{})
 
 	// start workers (non-blocking call)
-	cli.StartWorker()
+	client.StartWorker()
 
 	// wait for client request
 	time.Sleep(10 * time.Second)
 
 	// stop workers gracefully (blocking call)
-	cli.StopWorker()
+	client.StopWorker()
 }

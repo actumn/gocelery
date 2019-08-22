@@ -19,19 +19,24 @@ import (
 func main() {
 
 	// initialize celery client
-	cli, _ := gocelery.NewCeleryClient(
+	client, err := gocelery.NewCeleryClient(
 		gocelery.NewRedisCeleryBroker("redis://"),
 		gocelery.NewRedisCeleryBackend("redis://"),
 		1,
 	)
-
-	// prepare arguments
-	taskName := "worker.add"
-	argA := rand.Intn(10)
-	argB := rand.Intn(10)
+	if err != nil {
+		panic(err)
+	}
 
 	// run task
-	asyncResult, err := cli.Delay(taskName, argA, argB)
+	asyncResult, err := client.Delay("worker.add", 10, 20)
+	if err != nil {
+		panic(err)
+	}
+	asyncResultKwargs, err := client.DelayKwargs("worker.add_reflect", map[string]interface{}{
+		"a": rand.Intn(10),
+		"b": rand.Intn(10),
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +46,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	resKwargs, err := asyncResultKwargs.Get(10 * time.Second)
+	if err != nil {
+		panic(err)
+	}
 
 	log.Printf("result: %+v of type %+v", res, reflect.TypeOf(res))
-
+	log.Printf("result: %+v of type %+v", resKwargs, reflect.TypeOf(resKwargs))
 }
